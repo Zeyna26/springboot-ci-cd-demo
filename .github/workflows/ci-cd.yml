@@ -1,0 +1,56 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main   # Ce pipeline s'exécute sur chaque push vers la branche 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest   # Utilise une machine Ubuntu fournie par GitHub
+
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      NEXUS_URL: ${{ secrets.NEXUS_URL }}
+      NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+
+    steps:
+      - name: 📦 Récupération du code source
+        uses: actions/checkout@v3
+
+      - name: ☕ Installer Java 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🔨 Compiler le projet Maven
+        run: mvn clean package -DskipTests
+
+      - name: 🔎 Analyse SonarQube
+        run: mvn sonar:sonar -Dsonar.projectKey=demo \
+                             -Dsonar.host.url=http://<IP_SONAR>:9000 \
+                             -Dsonar.login=${{ env.SONAR_TOKEN }}
+
+      - name: 🛠️ Construire l'image Docker
+        run: docker build -t ${{ env.DOCKERHUB_USERNAME }}/springboot-ci-demo .
+
+      - name: 🔍 Scanner l'image avec Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.DOCKERHUB_USERNAME }}/springboot-ci-demo'
+
+      - name: 🔐 Connexion à DockerHub
+        run: echo "${{ env.DOCKERHUB_PASSWORD }}" | docker login -u "${{ env.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: 🚀 Pusher l'image vers DockerHub
+        run: docker push ${{ env.DOCKERHUB_USERNAME }}/springboot-ci-demo
+
+      - name: 📤 Uploader le .jar vers Nexus
+        run: |
+          curl -u ${{ env.NEXUS_USERNAME }}:${{ env.NEXUS_PASSWORD }} \
+            --upload-file target/demo-0.0.1-SNAPSHOT.jar \
+            ${{ env.NEXUS_URL }}/repository/maven-releases/com/example/demo/demo-0.0.1-SNAPSHOT.jar

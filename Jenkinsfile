@@ -67,8 +67,6 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh '''
                         aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name eks-sey
-                        echo "[DEBUG] Contenu de k8s/ :"
-                        ls -alh ${WORKSPACE}/k8s
                         kubectl apply -f k8s/deployment.yaml
                         kubectl apply -f k8s/service.yaml
                     '''

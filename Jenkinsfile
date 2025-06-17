@@ -16,6 +16,21 @@ pipeline {
             }
         }
 
+stage('Vérification du code source') {
+    steps {
+        sh '''
+            echo "Répertoire courant :"
+            pwd
+
+            echo "Structure du projet :"
+            find . -type f
+
+            echo "Contenu du dossier k8s :"
+            find . -name "*.yaml"
+        '''
+    }
+}
+
         stage('Préparation (Before Script)') {
             steps {
                 echo 'Vérification des outils installés'
@@ -60,18 +75,43 @@ pipeline {
                 }
             }
         }
+stage('DEBUG WORKSPACE') {
+    steps {
+        echo "Affichage du chemin de travail de Jenkins"
+        sh '''
+            echo "WORKSPACE = $WORKSPACE"
+            echo "Contenu du WORKSPACE :"
+            ls -alh $WORKSPACE
 
-        stage('Deploy to EKS') {
-            steps {
-                echo 'Déploiement sur le cluster EKS'
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-                    sh '''
-                        aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name eks-sey
-                        kubectl apply -f k8s/deployment.yaml
-                        kubectl apply -f k8s/service.yaml
-                    '''
-                }
-            }
+            echo "Contenu de $WORKSPACE/k8s :"
+            ls -alh $WORKSPACE/k8s
+        '''
+    }
+}
+
+stage('Deploy to EKS') {
+    steps {
+        echo 'Déploiement sur le cluster EKS'
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+            sh '''
+                aws eks update-kubeconfig --region eu-north-1 --name eks-sey
+
+                echo "[DEBUG] Position actuelle : $(pwd)"
+                echo "[DEBUG] Liste des fichiers YAML trouvés :"
+                find . -name "*.yaml"
+
+                DEPLOYMENT_FILE=$(find . -type f -name deployment.yaml | head -n 1)
+                SERVICE_FILE=$(find . -type f -name service.yaml | head -n 1)
+
+                echo "Déploiement de : $DEPLOYMENT_FILE"
+                kubectl apply -f $DEPLOYMENT_FILE
+
+                echo "Déploiement de : $SERVICE_FILE"
+                kubectl apply -f $SERVICE_FILE
+            '''
         }
+    }
+}
+
     }
 }

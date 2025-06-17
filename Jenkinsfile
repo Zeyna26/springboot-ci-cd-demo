@@ -34,7 +34,7 @@ pipeline {
         stage('Docker Run') {
             steps {
                 echo 'Lancement du conteneur Docker'
-                sh 'docker run -d -p 8080:8080 seynabou02/springboot-ci-cd-demo:latest'
+                sh 'docker run -d -p 8081:8080 seynabou02/springboot-ci-cd-demo:latest'
             }
         }
 

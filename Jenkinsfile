@@ -53,6 +53,13 @@ pipeline {
                 }
             }
         }
+stage('Checkout') {
+    steps {
+        checkout scm
+        sh 'ls -R' // Vérifie que Jenkins voit bien le dossier k8s/
+    }
+}
+
 
         // Job 3 – Déploiement sur EKS
         stage('Deploy to EKS') {

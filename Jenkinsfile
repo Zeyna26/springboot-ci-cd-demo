@@ -34,7 +34,12 @@ pipeline {
         stage('Docker Run') {
             steps {
                 echo 'Lancement du conteneur Docker'
-                sh 'docker run -d -p 8081:8080 seynabou02/springboot-ci-cd-demo:latest'
+                sh '''
+                    if docker ps -a | grep -q "springboot-ci-cd-demo"; then
+                        docker rm -f $(docker ps -a | grep "springboot-ci-cd-demo" | awk \'{print $1}\')
+                    fi
+                    docker run -d -p 8081:8080 --name springboot-ci-cd-demo seynabou02/springboot-ci-cd-demo:latest
+                '''
             }
         }
 
@@ -45,6 +50,20 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
                     sh 'docker push seynabou02/springboot-ci-cd-demo:latest'
+                }
+            }
+        }
+
+        // Job 3 – Déploiement sur EKS
+        stage('Deploy to EKS') {
+            steps {
+                echo 'Déploiement de l\'application sur EKS'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-jenkins-creds']]) {
+                    sh '''
+                        aws eks update-kubeconfig --region eu-north-1 --name eks-sey
+                        kubectl apply -f k8s/deployment.yaml
+                        kubectl apply -f k8s/service.yaml
+                    '''
                 }
             }
         }

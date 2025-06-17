@@ -68,8 +68,8 @@ stage('Checkout') {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh '''
                         aws eks update-kubeconfig --region eu-north-1 --name eks-sey
-                        kubectl apply -f k8s/deployment.yaml
-                        kubectl apply -f k8s/service.yaml
+                        kubectl apply -f ${WORKSPACE}/k8s/deployment.yaml
+                        kubectl apply -f ${WORKSPACE}/k8s/service.yaml
                     '''
                 }
             }

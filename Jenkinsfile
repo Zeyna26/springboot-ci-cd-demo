@@ -58,7 +58,7 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 echo 'Déploiement de l\'application sur EKS'
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-jenkins-creds']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh '''
                         aws eks update-kubeconfig --region eu-north-1 --name eks-sey
                         kubectl apply -f k8s/deployment.yaml
